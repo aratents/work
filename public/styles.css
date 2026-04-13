@@ -373,3 +373,8 @@ td input {
   .twoCol, .threeCol, .gridSummary { grid-template-columns: 1fr; }
   table { font-size: 13px; }
 }
+
+
+.narrowWrap{max-width:560px;margin:0 auto}
+.centerTitle{justify-content:center;text-align:center}
+.centerActions{justify-content:center}

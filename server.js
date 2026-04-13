@@ -291,6 +291,30 @@ app.post('/api/employee/:idNumber/upload/:docType', upload.single('file'), (req,
   return res.json({ documents: employee.documents });
 });
 
+
+app.get('/api/employee/:idNumber/timesheet-history', (req, res) => {
+  const idNumber = sanitizeIdNumber(req.params.idNumber);
+  const db = readDb();
+  const employee = db.employees[idNumber];
+  if (!employee) return res.status(404).json({ error: 'העובד לא נמצא.' });
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const months = Object.values(db.timesheets)
+    .filter((item) => item.employeeIdNumber === idNumber && item.month < currentMonth)
+    .sort((a, b) => b.month.localeCompare(a.month))
+    .map((item) => ({
+      month: item.month,
+      submittedAt: item.submittedAt,
+      workDays: item.summary?.workDays || 0,
+      totalHours: item.summary?.totalHours || 0,
+      regularHours: item.summary?.regularHours || 0,
+      overtime125Hours: item.summary?.overtime125Hours || 0,
+      overtime150Hours: item.summary?.overtime150Hours || 0,
+      travelAmount: item.summary?.travelAmount || 0,
+      totalPay: item.summary?.totalPay || 0
+    }));
+  return res.json({ months });
+});
+
 app.get('/api/timesheet/:idNumber/:month', (req, res) => {
   const idNumber = sanitizeIdNumber(req.params.idNumber);
   const month = String(req.params.month || '').slice(0, 7);
