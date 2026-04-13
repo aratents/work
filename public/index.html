@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ארה אוהלים ומבני מתיחה בעמ - דיווח שעות עבודה</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="hero compactHero">
+    <div class="container">
+      <div class="heroTop compactTop">
+        <div class="brand">
+          <div class="logoShell">
+            <img src="/logo.png" alt="לוגו ארה אוהלים ומבני מתיחה בעמ" />
+          </div>
+          <div class="brandText">
+            <h1 id="companyName">ארה אוהלים ומבני מתיחה בעמ - דיווח שעות עבודה</h1>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main compactMain">
+    <div class="container narrowWrap">
+      <section class="card loginOnly" id="loginCard">
+        <div class="sectionTitle centerTitle" style="margin-bottom:22px">
+          <h2>כניסה</h2>
+        </div>
+        <div class="loginSimple">
+          <div class="field">
+            <label for="loginIdNumber">תעודת זהות</label>
+            <input id="loginIdNumber" type="text" inputmode="numeric" maxlength="9" placeholder="הזן תעודת זהות" />
+          </div>
+          <div class="actions centerActions">
+            <button class="btnPrimary" id="loginBtn">כניסה</button>
+          </div>
+        </div>
+        <div id="loginNotice" class="notice hidden" style="margin-top:16px"></div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const qs = (s) => document.querySelector(s);
+    function showNotice(el, message, kind = '') {
+      el.textContent = message;
+      el.className = `notice ${kind}`.trim();
+      el.classList.remove('hidden');
+    }
+    function sanitizeDigits(value) { return String(value || '').replace(/\D/g, ''); }
+    async function api(url, options = {}) {
+      const response = await fetch(url, {
+        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+        ...options
+      });
+      const payload = response.headers.get('content-type')?.includes('application/json') ? await response.json() : null;
+      if (!response.ok) throw new Error(payload?.error || 'אירעה שגיאה.');
+      return payload;
+    }
+    async function init() {
+      const cfg = await api('/api/config');
+      qs('#companyName').textContent = `${cfg.company.name} - דיווח שעות עבודה`;
+      const cachedId = localStorage.getItem('ara_employee_id');
+      if (cachedId) qs('#loginIdNumber').value = cachedId;
+      qs('#loginBtn').addEventListener('click', async () => {
+        try {
+          const idNumber = sanitizeDigits(qs('#loginIdNumber').value);
+          if (idNumber.length < 5) {
+            showNotice(qs('#loginNotice'), 'יש להזין תעודת זהות תקינה.', 'warn');
+            return;
+          }
+          const payload = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ idNumber }) });
+          localStorage.setItem('ara_employee_id', payload.employee.idNumber);
+          const complete = Boolean(payload.employee.sections?.personalLocked && payload.employee.sections?.bankLocked && payload.employee.documents?.form101Done && payload.employee.documents?.idCard && payload.employee.documents?.taxCoordination && payload.employee.documents?.dischargeCertificate);
+          window.location.href = complete ? '/timesheet.html' : '/onboarding.html';
+        } catch (error) {
+          showNotice(qs('#loginNotice'), error.message, 'warn');
+        }
+      });
+    }
+    init().catch((error) => showNotice(qs('#loginNotice'), error.message || 'שגיאה בטעינת המערכת.', 'warn'));
+  </script>
+</body>
+</html>
