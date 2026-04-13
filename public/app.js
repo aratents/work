@@ -204,8 +204,8 @@ async function login(idNumber) {
     body: JSON.stringify({ idNumber })
   });
   setLoggedIn(payload.employee);
-  qs('#monthPicker').value = todayMonth();
-  await loadMonth(qs('#monthPicker').value);
+  state.currentMonth = todayMonth();
+  await loadMonth(state.currentMonth);
 }
 
 async function savePersonal() {
@@ -286,8 +286,9 @@ function collectRowsFromTable() {
   return rows;
 }
 
-async function loadMonth(month) {
-  state.currentMonth = month;
+async function loadMonth(month = todayMonth()) {
+  state.currentMonth = todayMonth();
+  month = state.currentMonth;
   hideNotice(qs('#timesheetNotice'));
   const payload = await api(`/api/timesheet/${state.currentEmployee.idNumber}/${month}`);
   renderTimesheet(payload.timesheet);
@@ -351,15 +352,12 @@ function bindEvents() {
     }
   });
 
-  qs('#logoutBtn').addEventListener('click', () => setLoggedOut());
+  if (qs('#logoutBtn')) qs('#logoutBtn').addEventListener('click', () => setLoggedOut());
   qs('#savePersonalBtn').addEventListener('click', async () => {
     try { await savePersonal(); } catch (error) { showNotice(qs('#personalNotice'), error.message, 'warn'); }
   });
   qs('#saveBankBtn').addEventListener('click', async () => {
     try { await saveBank(); } catch (error) { showNotice(qs('#bankNotice'), error.message, 'warn'); }
-  });
-  qs('#loadMonthBtn').addEventListener('click', async () => {
-    try { await loadMonth(qs('#monthPicker').value || todayMonth()); } catch (error) { showNotice(qs('#timesheetNotice'), error.message, 'warn'); }
   });
   qs('#saveTimesheetBtn').addEventListener('click', async () => {
     try { await saveTimesheet(); } catch (error) { showNotice(qs('#timesheetNotice'), error.message, 'warn'); }
@@ -388,7 +386,7 @@ function bindEvents() {
   try {
     await loadConfig();
     bindEvents();
-    qs('#monthPicker').value = todayMonth();
+    state.currentMonth = todayMonth();
     const cachedId = localStorage.getItem('ara_employee_id');
     if (cachedId) {
       try { await login(cachedId); } catch (_error) { localStorage.removeItem('ara_employee_id'); }
